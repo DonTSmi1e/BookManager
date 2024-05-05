@@ -17,26 +17,23 @@ class BookDetailsWindow(customtkinter.CTkToplevel):
         self.book_list_frame = master
         self.data = data
 
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure((0, 1, 2), weight=1)
+
         self.title(f"\"{self.data[1]}\"")
-        self.geometry("800x300")
+        self.geometry("500x300")
+        self.resizable(False, False)
 
-        self.name_label = customtkinter.CTkLabel(self, text=self.data[1], font=customtkinter.CTkFont(size=20, weight="bold"))
-        self.name_label.pack(padx=20)
+        self.info_label = customtkinter.CTkLabel(self, text=f"{self.data[2]}, {self.data[3]}", font=customtkinter.CTkFont(size=20, weight="bold"))
+        self.info_label.grid(row=0, column=0)
 
-        self.author_label = customtkinter.CTkLabel(self, text=self.data[2], font=customtkinter.CTkFont(size=15, weight="bold"))
-        self.author_label.pack(padx=20)
+        self.details_textbox = customtkinter.CTkTextbox(self, width=400)
+        self.details_textbox.grid(row=1, column=0, columnspan=2)
+        self.details_textbox.insert("0.0", self.data[4])
+        self.details_textbox.configure(state="disabled")
 
-        self.genre_label = customtkinter.CTkLabel(self, text=self.data[3], font=customtkinter.CTkFont(size=15, weight="bold"))
-        self.genre_label.pack(padx=20)
-
-        self.details_header_label = customtkinter.CTkLabel(self, text="Описание", font=customtkinter.CTkFont(size=20, weight="bold"))
-        self.details_header_label.pack(padx=20, pady=5)
-
-        self.details_label = customtkinter.CTkLabel(self, text=self.data[4])
-        self.details_label.pack(padx=20)
-
-        self.delete_button = customtkinter.CTkButton(self, width=350, text="Удалить", command=self.delete_button_callback)
-        self.delete_button.pack(padx=20, pady=5)
+        self.delete_button = customtkinter.CTkButton(self, text="Удалить", command=self.delete_button_callback)
+        self.delete_button.grid(row=2, column=0)
 
     def delete_button_callback(self):
         db.delete_book(self.data[0])
@@ -48,33 +45,43 @@ class AddBookWindow(customtkinter.CTkToplevel):
         super().__init__(master, **kwargs)
         self.app = master
 
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure((0, 1, 2, 3, 4, 5), weight=1)
+
         self.title("Добавить книгу")
-        self.geometry("400x250")
+        self.geometry("400x400")
+        self.resizable(False, False)
 
-        self.name_entry = customtkinter.CTkEntry(self, width=350, placeholder_text="Название книги")
-        self.name_entry.pack(padx=20, pady=5)
+        customtkinter.CTkLabel(self, text="Название: ").grid(row=0, column=0)
+        self.name_entry = customtkinter.CTkEntry(self)
+        self.name_entry.grid(row=0, column=1)
 
-        self.author_entry = customtkinter.CTkEntry(self, width=350, placeholder_text="Автор книги")
-        self.author_entry.pack(padx=20, pady=5)
+        customtkinter.CTkLabel(self, text="Автор: ").grid(row=1, column=0)
+        self.author_entry = customtkinter.CTkEntry(self)
+        self.author_entry.grid(row=1, column=1)
 
-        self.genre_entry = customtkinter.CTkEntry(self, width=350, placeholder_text="Жанр")
-        self.genre_entry.pack(padx=20, pady=5)
+        customtkinter.CTkLabel(self, text="Жанр: ").grid(row=2, column=0)
+        self.genre_combo = customtkinter.CTkComboBox(self, values=db.get_genres())
+        self.genre_combo.grid(row=2, column=1)
+        self.genre_combo.set("")
 
-        self.details_entry = customtkinter.CTkEntry(self, width=350, placeholder_text="Описание")
-        self.details_entry.pack(padx=20, pady=5)
+        customtkinter.CTkLabel(self, text="Описание: ").grid(row=3, column=0)
+        self.details_textbox = customtkinter.CTkTextbox(self)
+        self.details_textbox.grid(row=3, column=1)
 
-        self.add_button = customtkinter.CTkButton(self, width=350, text="Добавить", command=self.add_button_callback)
-        self.add_button.pack(padx=20, pady=5)
+        self.add_button = customtkinter.CTkButton(self, text="Добавить", command=self.add_button_callback)
+        self.add_button.grid(row=4, column=0, columnspan=2)
 
         self.info_label = customtkinter.CTkLabel(self, text="")
-        self.info_label.pack(padx=20, pady=5)
+        self.info_label.grid(row=5, column=0, columnspan=2)
 
     def add_button_callback(self):
         data = (
             self.name_entry.get(),
             self.author_entry.get(),
-            self.genre_entry.get(),
-            self.details_entry.get()
+            self.genre_combo.get(),
+            self.details_textbox.get("0.0", "end")
         )
 
         if   len(data[0]) == 0: self.info_label.configure(text="Введите название книги")
@@ -97,10 +104,11 @@ class BookListFrame(customtkinter.CTkScrollableFrame):
         self.update_table()
 
     def update_table(self, keyword: str = ""):
+        keyword = keyword.lower()
         books = [[ "ID", "Название", "Автор", "Жанр" ]]
 
         for data in db.get_books():
-            if keyword in data[1] or keyword in data[2]:
+            if keyword in data[1].lower() or keyword in data[2].lower() or keyword in data[3].lower():
                 books.append([ data[0], data[1], data[2], data[3] ])
 
         self.table.columns = 4
@@ -120,12 +128,10 @@ class App(customtkinter.CTk):
         self.resizable(False, False)
 
         self.grid_columnconfigure(1, weight=1)
-        self.grid_columnconfigure((2, 3), weight=1)
-        self.grid_rowconfigure((0, 1, 2), weight=1)
+        self.grid_rowconfigure(0, weight=1)
 
-        self.sidebar = customtkinter.CTkFrame(self, width=140, corner_radius=0)
-        self.sidebar.grid(row=0, column=0, rowspan=4, sticky="nsew")
-        self.sidebar.grid_rowconfigure(4, weight=1)
+        self.sidebar = customtkinter.CTkFrame(self, corner_radius=0)
+        self.sidebar.grid(row=0, column=0, sticky="nsew")
 
         self.label = customtkinter.CTkLabel(self.sidebar, text=WINDOW_TITLE, font=customtkinter.CTkFont(size=20, weight="bold"))
         self.label.grid(row=0, column=0, padx=20, pady=(20, 10))

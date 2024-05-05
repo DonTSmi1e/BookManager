@@ -35,6 +35,12 @@ class Database:
             ) VALUES (?, ?, ?, ?)
         """, (name, author, genre, details), commit=True)
 
+    def get_genres(self):
+        """Returns a LIST containing genres"""
+        cursor = self.execute("SELECT DISTINCT genre FROM Books").fetchall()
+        genres = [ genre[0] for genre in cursor ]
+        return genres
+
     def get_books(self):
         """Returns a LIST with LISTS containing book data"""
         books = self.execute("SELECT * FROM Books").fetchall()
