@@ -1,0 +1,4 @@
+WINDOW_TITLE = "Книги"
+WINDOW_WIDTH = 1024
+WINDOW_HEIGHT = 600
+DATABASE = "database.db"
